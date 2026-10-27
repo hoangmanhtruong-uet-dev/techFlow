@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: techflow-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-techflow_db}
+      POSTGRES_USER: ${POSTGRES_USER:-techflow_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-techflow_secret_pwd}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - techflow_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-techflow_user} -d ${POSTGRES_DB:-techflow_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - techflow-network
+
+  techflow-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: techflow-api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-techflow_db}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-techflow_user}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-techflow_secret_pwd}
+      APPLICATION_JWT_SECRET: ${APPLICATION_JWT_SECRET:-404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}
+      APPLICATION_CORS_ALLOWED_ORIGINS: ${APPLICATION_CORS_ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:5173}
+      SERVER_PORT: 8080
+    ports:
+      - "${API_PORT:-8080}:8080"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
+    networks:
+      - techflow-network
+
+volumes:
+  techflow_pgdata:
+    driver: local
+
+networks:
+  techflow-network:
+    driver: bridge

@@ -1,0 +1,36 @@
+package com.techflow.common.response;
+
+import com.fasterxml.jackson.annotation.JsonInclude;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@Setter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public class ApiResponse<T> {
+
+    private boolean success;
+    private T data;
+    private PageMeta meta;
+
+    public static <T> ApiResponse<T> success(T data) {
+        return ApiResponse.<T>builder()
+                .success(true)
+                .data(data)
+                .build();
+    }
+
+    public static <T> ApiResponse<T> success(T data, PageMeta meta) {
+        return ApiResponse.<T>builder()
+                .success(true)
+                .data(data)
+                .meta(meta)
+                .build();
+    }
+}
